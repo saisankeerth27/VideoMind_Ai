@@ -294,3 +294,5 @@ VITE_API_BASE_URL=http://localhost:8000
 - Background job processing for long videos
 - Additional export formats
 - Video metadata fetching
+#   V i d e o M i n d _ A i  
+ 

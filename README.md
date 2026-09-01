@@ -2,11 +2,13 @@
 
 AI-powered YouTube video transcript and summarization platform.
 
-`React` · `FastAPI` · `Google Gemini` · `PostgreSQL`
+`React` · `FastAPI` · `Google Gemini` · `PostgreSQL` · `Deployed on Vercel + Render`
 
 ## 1. Overview
 
 VideoMind AI allows users to paste a YouTube URL and generate the video's transcript and AI-powered summary in a single action. The system supports multilingual output across 25 languages and three summary modes (Short, Medium, Detailed). Users can read, search, copy, regenerate, and download the generated content as professional PDF documents.
+
+**Live Frontend:** [https://frontend-one-bay-98.vercel.app](https://frontend-one-bay-98.vercel.app)
 
 ## 2. Key Features
 
@@ -26,140 +28,85 @@ VideoMind AI allows users to paste a YouTube URL and generate the video's transc
 
 ## 3. Architecture
 
+### High-Level Overview
+
 ```mermaid
 flowchart LR
-    U[User] --> F[React + Vite]
-    F -->|POST /api/videos/process| B[FastAPI]
-    B --> Y[YouTube Transcript API]
-    B --> G[Google Gemini]
-    B --> D[(PostgreSQL)]
-    B --> P[PDF Service - fpdf2]
-    F -->|GET *.pdf| P
+    U[User] --> F[React + Vite<br/>Vercel]
+    F -->|REST API| B[FastAPI<br/>Render]
+    B --> Y[YouTube Transcript<br/>API]
+    B --> G[Google Gemini<br/>AI]
+    B --> D[(PostgreSQL<br/>Supabase)]
+    B --> P[PDF Service<br/>fpdf2]
 ```
 
-**One-click processing:** The user selects output language and summary length, then clicks Generate once. The backend extracts the transcript, generates/retrieves the AI summary, and returns both in a single response.
-                         ┌──────────────────────┐
-                         │        USER          │
-                         │  YouTube Video URL   │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │   REACT + VITE UI    │
-                         │                      │
-                         │ • URL Input          │
-                         │ • Language Selection │
-                         │ • Summary Length     │
-                         │ • Generate           │
-                         └──────────┬───────────┘
-                                    │
-                                    │ HTTP / REST API
-                                    ▼
-                    ┌──────────────────────────────┐
-                    │       FASTAPI BACKEND        │
-                    │                              │
-                    │ • URL Validation             │
-                    │ • Request Handling           │
-                    │ • Processing Orchestration   │
-                    └──────────────┬───────────────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-                    ▼                             ▼
-          ┌──────────────────┐          ┌──────────────────┐
-           │ POSTGRESQL   │
-           │    DATABASE      │
-          │ SERVICE          │          │                  │
-          │                  │          │ • Videos         │
-          │ • Get Transcript │          │ • Transcripts    │
-          │ • Detect Language│          │ • Summaries      │
-          └────────┬─────────┘          └────────▲─────────┘
-                   │                             │
-                   │ Transcript                  │
-                   └──────────────┬──────────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────────┐
-                         │   TEXT PROCESSING    │
-                         │                      │
-                         │ • Cleaning           │
-                         │ • Normalization      │
-                         │ • Size Analysis      │
-                         │ • Chunking            │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │    GOOGLE GEMINI     │
-                         │       AI SERVICE     │
-                         │                      │
-                         │ • Summarization      │
-                         │ • Key Points         │
-                         │ • Concepts           │
-                         │ • Detailed Analysis  │
-                         │ • Multilingual Output│
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │   SUMMARY VALIDATION │
-                         │                      │
-                         │ • JSON Validation    │
-                         │ • Error Handling      │
-                         │ • Response Formatting│
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                          │    POSTGRESQL DATABASE   │
-                         │                      │
-                         │ Store / Retrieve:    │
-                         │ • Transcript         │
-                         │ • Summary            │
-                         │ • Language           │
-                         │ • Summary Length     │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │    FASTAPI RESPONSE  │
-                         │                      │
-                         │ Transcript + Summary │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │     REACT RESULTS    │
-                         │                      │
-                         │  ┌────────┐ ┌──────┐ │
-                         │  │Summary │ │Trans.│ │
-                         │  └────────┘ └──────┘ │
-                         │                      │
-                         │ • Search              │
-                         │ • Copy                │
-                         │ • Regenerate          │
-                         │ • Download PDF        │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │     PDF SERVICE      │
-                         │                      │
-                         │ • Summary PDF        │
-                         │ • Transcript PDF     │
-                         │ • Complete PDF       │
-                         └──────────────────────┘
+### Detailed Request Flow
+
+```mermaid
+flowchart TD
+    A[User enters YouTube URL] --> B[React Frontend]
+    B -->|POST /api/videos/process| C[FastAPI Backend]
+    C --> D{Validate URL}
+    D -->|Invalid| E[Return Error]
+    D -->|Valid| F[Extract Video ID]
+    F --> G[Fetch Transcript from YouTube]
+    G -->|Cached| H[Load from PostgreSQL]
+    G -->|New| I[Store in PostgreSQL]
+    H --> J[Text Processing]
+    I --> J
+    J --> K[Chunk if needed]
+    K --> L[Send to Google Gemini]
+    L --> M[Parse AI Response]
+    M --> N[Validate JSON Structure]
+    N -->|Failed| O[Retry / Fallback Model]
+    O --> L
+    N -->|Success| P[Store Summary in PostgreSQL]
+    P --> Q[Return Transcript + Summary]
+    Q --> R[React displays Results]
+    R --> S{User Action}
+    S -->|Search| T[Highlight matches]
+    S -->|Copy| U[Clipboard]
+    S -->|Download PDF| V[Generate PDF via fpdf2]
+    S -->|Regenerate| W[Re-run AI generation]
+    W --> L
+```
+
+### Deployment Architecture
+
+```mermaid
+flowchart LR
+    subgraph Vercel
+        FE[React SPA<br/>Static Build]
+    end
+    subgraph Render
+        BE[FastAPI<br/>Gunicorn + Uvicorn]
+    end
+    subgraph Supabase
+        DB[(PostgreSQL<br/>Connection Pooler)]
+    end
+    subgraph External
+        YT[YouTube API]
+        AI[Google Gemini API]
+    end
+
+    FE -->|HTTP REST| BE
+    BE --> DB
+    BE --> YT
+    BE --> AI
+    FE -.->|Build-time env var| FE
+    BE -.->|Runtime env vars| BE
+```
 
 ## 4. Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, Vite 8, Tailwind CSS v4, Axios, React Router 7 |
-| Backend | Python 3.13, FastAPI 0.115, SQLAlchemy 2, Pydantic 2 |
-| AI | Google Gemini (google-genai SDK) |
-| Transcript | youtube-transcript-api |
-| Database | PostgreSQL 14+ |
-| PDF | fpdf2 with embedded Noto fonts |
+| Layer | Technology | Hosting |
+|-------|-----------|---------|
+| Frontend | React 19, Vite 8, Tailwind CSS v4, Axios, React Router 7 | Vercel |
+| Backend | Python 3.13, FastAPI 0.115, SQLAlchemy 2, Pydantic 2, Gunicorn | Render |
+| AI | Google Gemini (google-genai SDK) | Google Cloud |
+| Transcript | youtube-transcript-api | YouTube |
+| Database | PostgreSQL (Supabase) | AWS (ap-southeast-1) |
+| PDF | fpdf2 with embedded Noto fonts | Backend |
 
 ## 5. Project Structure
 
@@ -167,22 +114,32 @@ flowchart LR
 VideoMind_AI/
 ├── backend/
 │   ├── app/
-│   │   ├── api/routes/       # FastAPI endpoints
-│   │   ├── models/           # SQLAlchemy models
-│   │   ├── schemas/          # Pydantic request/response
+│   │   ├── api/routes/       # FastAPI endpoint handlers
+│   │   ├── core/             # Config, error handling
+│   │   ├── database/         # SQLAlchemy engine, session, base
+│   │   ├── models/           # SQLAlchemy ORM models
+│   │   ├── schemas/          # Pydantic request/response schemas
 │   │   ├── services/         # AI, YouTube, PDF services
-│   │   └── main.py
-│   ├── requirements.txt
-│   └── .env.example
+│   │   ├── utils/            # Text chunking, language utils
+│   │   └── main.py           # FastAPI app entry point
+│   ├── scripts/              # One-time migration scripts
+│   ├── Procfile              # Render process definition
+│   ├── requirements.txt      # Python dependencies
+│   ├── .python-version       # Python 3.13
+│   ├── runtime.txt           # Python runtime for Render
+│   └── .env.example          # Environment variable template
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # UI components
+│   │   ├── components/       # UI components (19 files)
 │   │   ├── pages/            # Home, Results
-│   │   ├── hooks/            # Application state
-│   │   ├── services/api.js   # API client
-│   │   └── config/           # Languages, settings
+│   │   ├── hooks/            # App state, context
+│   │   ├── services/api.js   # Axios API client
+│   │   ├── config/           # Language definitions
+│   │   └── utils/            # Formatters, validators, downloads
+│   ├── vercel.json           # Vercel SPA rewrite rules
 │   ├── package.json
 │   └── .env.example
+├── render.yaml               # Render deployment config
 └── README.md
 ```
 
@@ -190,12 +147,12 @@ VideoMind_AI/
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.13+
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 14+ (or Supabase account)
 - Google Gemini API key
 
-### Backend
+### Backend (Local)
 
 ```powershell
 cd backend
@@ -210,7 +167,7 @@ Configure `backend/.env` (see Section 7), then start:
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend
+### Frontend (Local)
 
 ```powershell
 cd frontend
@@ -239,7 +196,29 @@ DEBUG=false
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-## 8. How It Works
+## 8. Deployment
+
+### Backend (Render)
+
+1. Push to GitHub
+2. Go to [render.com](https://render.com) > **New Web Service**
+3. Connect your repo — Render auto-detects `render.yaml`
+4. Set environment variables in the Render dashboard:
+   - `DATABASE_URL` — your Supabase/PostgreSQL connection string
+   - `AI_API_KEY` — your Google Gemini API key
+   - `CORS_ORIGINS` — your Vercel frontend URL (e.g. `https://your-app.vercel.app`)
+5. Deploy
+
+### Frontend (Vercel)
+
+1. Go to [vercel.com](https://vercel.com) > **New Project**
+2. Connect your repo, set **Root Directory** to `frontend`
+3. Set environment variable:
+   - `VITE_API_BASE_URL` — your Render backend URL (e.g. `https://videomind-backend.onrender.com`)
+4. Deploy
+5. Copy the Vercel URL and add it to Render's `CORS_ORIGINS` env var
+
+## 9. How It Works
 
 1. User enters a YouTube URL, selects output language and summary length
 2. Backend validates the URL and extracts the video ID
@@ -251,7 +230,7 @@ VITE_API_BASE_URL=http://localhost:8000
 8. React displays the results on the Summary and Transcript tabs
 9. User can search, copy, regenerate, or download as PDF
 
-## 9. API Overview
+## 10. API Overview
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
@@ -265,17 +244,62 @@ VITE_API_BASE_URL=http://localhost:8000
 | `GET` | `/api/videos/{id}/transcript/pdf` | Download transcript PDF |
 | `GET` | `/api/videos/{id}/pdf` | Download complete analysis PDF |
 
-## 10. Usage
+## 11. Database Schema
 
-1. Start PostgreSQL and create the database: `CREATE DATABASE youtube_ai;`
-2. Start the FastAPI backend on port 8000
-3. Start the React frontend
-4. Open `http://localhost:5173`
-5. Paste a YouTube URL, select language and summary length, click **Generate**
-6. View the transcript and summary on the results page
-7. Use **Copy** to copy content, **Download PDF** to export, or **Regenerate** to create a new summary
+```mermaid
+erDiagram
+    users ||--o{ videos : creates
+    videos ||--o{ transcripts : has
+    videos ||--o{ summaries : has
 
-## 11. Limitations
+    users {
+        int id PK
+        string name
+        string email UK
+        string password_hash
+        datetime created_at
+        datetime updated_at
+    }
+
+    videos {
+        int id PK
+        int user_id FK
+        string youtube_id
+        string youtube_url
+        string title
+        string thumbnail_url
+        int duration
+        datetime created_at
+        datetime updated_at
+    }
+
+    transcripts {
+        int id PK
+        int video_id FK
+        text content
+        string language_code
+        bool is_original
+        datetime created_at
+        datetime updated_at
+    }
+
+    summaries {
+        int id PK
+        int video_id FK
+        string language_code
+        string summary_length
+        text overview
+        text detailed_explanation
+        json key_points
+        json important_concepts
+        json main_takeaways
+        text conclusion
+        datetime created_at
+        datetime updated_at
+    }
+```
+
+## 12. Limitations
 
 - Videos without accessible transcripts cannot be processed
 - AI generation depends on Gemini API availability and credits
@@ -283,12 +307,10 @@ VITE_API_BASE_URL=http://localhost:8000
 - Summary quality depends on transcript quality
 - Video titles are placeholders — no metadata scraping
 
-## 12. Future Enhancements
+## 13. Future Enhancements
 
 - User accounts and video history
-- Cloud deployment configuration
 - Background job processing for long videos
 - Additional export formats
 - Video metadata fetching
-#   V i d e o M i n d _ A i  
- 
+- Real-time progress via WebSockets

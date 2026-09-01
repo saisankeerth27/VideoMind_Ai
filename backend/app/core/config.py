@@ -1,5 +1,4 @@
 from functools import lru_cache
-from urllib.parse import quote_plus
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,12 +17,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "VideoMind Ai"
     DEBUG: bool = False
 
-    # MySQL
-    MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_DATABASE: str = "youtube_ai"
-    MYSQL_USERNAME: str = "root"
-    MYSQL_PASSWORD: str = ""
+    # PostgreSQL
+    DATABASE_URL: str = ""
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173"
@@ -37,13 +32,7 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        # Percent-encode credentials so special characters (e.g. "@" in passwords) are safe
-        password = quote_plus(self.MYSQL_PASSWORD)
-        username = quote_plus(self.MYSQL_USERNAME)
-        return (
-            f"mysql+pymysql://{username}:{password}"
-            f"@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
-        )
+        return self.DATABASE_URL
 
     @property
     def cors_origins_list(self) -> list[str]:

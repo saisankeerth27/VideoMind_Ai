@@ -2,7 +2,7 @@
 
 AI-powered YouTube video transcript and summarization platform.
 
-`React` · `FastAPI` · `Google Gemini` · `MySQL`
+`React` · `FastAPI` · `Google Gemini` · `PostgreSQL`
 
 ## 1. Overview
 
@@ -32,7 +32,7 @@ flowchart LR
     F -->|POST /api/videos/process| B[FastAPI]
     B --> Y[YouTube Transcript API]
     B --> G[Google Gemini]
-    B --> D[(MySQL)]
+    B --> D[(PostgreSQL)]
     B --> P[PDF Service - fpdf2]
     F -->|GET *.pdf| P
 ```
@@ -67,8 +67,8 @@ flowchart LR
                     │                             │
                     ▼                             ▼
           ┌──────────────────┐          ┌──────────────────┐
-          │ YOUTUBE          │          │     MYSQL        │
-          │ TRANSCRIPT       │          │    DATABASE      │
+           │ POSTGRESQL   │
+           │    DATABASE      │
           │ SERVICE          │          │                  │
           │                  │          │ • Videos         │
           │ • Get Transcript │          │ • Transcripts    │
@@ -111,7 +111,7 @@ flowchart LR
                                     │
                                     ▼
                          ┌──────────────────────┐
-                         │    MYSQL DATABASE    │
+                          │    POSTGRESQL DATABASE   │
                          │                      │
                          │ Store / Retrieve:    │
                          │ • Transcript         │
@@ -158,7 +158,7 @@ flowchart LR
 | Backend | Python 3.13, FastAPI 0.115, SQLAlchemy 2, Pydantic 2 |
 | AI | Google Gemini (google-genai SDK) |
 | Transcript | youtube-transcript-api |
-| Database | MySQL 8+ |
+| Database | PostgreSQL 14+ |
 | PDF | fpdf2 with embedded Noto fonts |
 
 ## 5. Project Structure
@@ -192,7 +192,7 @@ VideoMind_AI/
 
 - Python 3.11+
 - Node.js 18+
-- MySQL 8+
+- PostgreSQL 14+
 - Google Gemini API key
 
 ### Backend
@@ -225,11 +225,7 @@ Open `http://localhost:5173` in your browser.
 ### Backend (`backend/.env`)
 
 ```env
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_DATABASE=youtube_ai
-MYSQL_USERNAME=root
-MYSQL_PASSWORD=your_mysql_password
+DATABASE_URL=postgresql://user:password@host:5432/dbname
 AI_API_KEY=your_gemini_api_key
 AI_MODEL=gemini-flash-latest
 AI_FALLBACK_MODELS=gemini-flash-lite-latest
@@ -248,7 +244,7 @@ VITE_API_BASE_URL=http://localhost:8000
 1. User enters a YouTube URL, selects output language and summary length
 2. Backend validates the URL and extracts the video ID
 3. Transcript is retrieved from YouTube captions
-4. Transcript is stored in MySQL (or reused if cached)
+4. Transcript is stored in PostgreSQL (or reused if cached)
 5. If language differs from transcript, translation is generated via Gemini
 6. Gemini generates the structured summary (or cached version is returned)
 7. Both transcript and summary are returned in a single API response
@@ -271,7 +267,7 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ## 10. Usage
 
-1. Start MySQL and create the database: `CREATE DATABASE youtube_ai;`
+1. Start PostgreSQL and create the database: `CREATE DATABASE youtube_ai;`
 2. Start the FastAPI backend on port 8000
 3. Start the React frontend
 4. Open `http://localhost:5173`
